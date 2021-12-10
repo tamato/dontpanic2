@@ -1,0 +1,26 @@
+floors: 10width: 19rounds: 47exit flr: 9exit pos: 9# clones: 41#extra ele: 0eles: 17
+e floor3e pos: 4
+e floor4e pos: 3
+e floor7e pos: 4
+e floor1e pos: 17
+e floor8e pos: 9
+e floor4e pos: 9
+e floor2e pos: 3
+e floor0e pos: 3
+e floor5e pos: 4
+e floor7e pos: 17
+e floor1e pos: 4
+e floor3e pos: 17
+e floor2e pos: 9
+e floor6e pos: 9
+e floor5e pos: 17
+e floor0e pos: 9
+e floor6e pos: 3
+# of floors: 10
+# of elvators: 17
+# of elevators to create: 0
+
+Pos: 6 Floor: 0
+elevator distance: 3 current shortest: 20
+new closest: 3
+elevator distance: 3 current shortest: 3
