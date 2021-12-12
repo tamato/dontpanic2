@@ -1,26 +1,43 @@
-floors: 10width: 19rounds: 47exit flr: 9exit pos: 9# clones: 41#extra ele: 0eles: 17
-e floor3e pos: 4
-e floor4e pos: 3
-e floor7e pos: 4
-e floor1e pos: 17
-e floor8e pos: 9
-e floor4e pos: 9
-e floor2e pos: 3
-e floor0e pos: 3
-e floor5e pos: 4
-e floor7e pos: 17
-e floor1e pos: 4
-e floor3e pos: 17
-e floor2e pos: 9
-e floor6e pos: 9
-e floor5e pos: 17
-e floor0e pos: 9
-e floor6e pos: 3
-# of floors: 10
-# of elvators: 17
-# of elevators to create: 0
+10 19 47 9 9 41 0 17
+3 4
+4 3
+7 4
+1 17
+8 9
+4 9
+2 3
+0 3
+5 4
+7 17
+1 4
+3 17
+2 9
+6 9
+5 7
+0 9
+6 3
 
-Pos: 6 Floor: 0
-elevator distance: 3 current shortest: 20
-new closest: 3
-elevator distance: 3 current shortest: 3
+
+Start pos: 0,6
+Start direction: LEFT
+
+/**************
+  -= Map =-
+
+....................
+.........x..........
+.........e..........
+....e............e..
+...e.....e..........
+....e..e............
+...e.....e..........
+....e............e..
+...e.....e..........
+....e............e..
+...e..s..e..........
+
+pointers
+exit<-8 9<-7 4<-6 9<-5 4<-4 3<-3 4<-2 3<-1 17<-0 3
+
+**************/
+
