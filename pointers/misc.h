@@ -4,7 +4,8 @@ namespace pointers {
    struct Node {
       std::string name {""};
       int pos {INT_MAX};
-      Node(int pos_, const std::string&& name_): pos(pos_), name((name_)) {}
+      int floor {INT_MAX};
+      Node(int pos_, int flr_, const std::string&& name_): pos(pos_), floor(flr_), name((name_)) {}
       Node() {}
 
       std::vector<Node*> childNodes;
@@ -18,10 +19,20 @@ namespace pointers {
       }
    };
 
-   int traverseGraph(const Node* start, const Node& goal, int dist_traveled, Direction dir)
+   struct Clone {
+      Direction dir;
+      int floor;
+      int pos;
+
+      bool operator==(const Node& other) const {
+         return (  floor == other.floor && pos == other.pos );
+      }
+   };
+   
+   int traverseGraph(const Clone& clone, const Node& goal, int dist_traveled)
    {
       int min_dist = INT_MAX;
-      if (*start == goal) {
+      if (clone == goal) {
          min_dist = dist_traveled;
          // std::cout << "Goal found!" << " " << dist_traveled << std::endl;
          return min_dist;
@@ -47,7 +58,7 @@ namespace pointers {
          }
 
          int dist = dist_traveled + CostForElevator + dist_to_elevator;
-         dist = traverseGraph(n, goal, dist, dir);
+         dist = traverseGraph(n, goal, dist);
 
          if (dist >= min_dist) continue;
 
@@ -73,7 +84,7 @@ namespace pointers {
 
          for (auto& e: elevators[i+flr_offset]) {
             int pos = e;
-            Node node(pos, std::to_string(i) + " " + std::to_string(pos));
+            Node node(pos, i+flr_offset, std::to_string(i) + " " + std::to_string(pos));
             const int size = (int)nodes[i].size();
             nodes[i].push_back(std::move(node));
             node = nodes[i].back();
@@ -92,7 +103,7 @@ namespace pointers {
       }
 
       // Pop in the exit
-      Node exitNode(exit_pos, "exit");
+      Node exitNode(exit_pos, exit_floor, "exit");
       for (auto& n : nodes[exit_floor - 1]) {
          n.addChild(&exitNode);
       }
@@ -101,30 +112,13 @@ namespace pointers {
       // using the lead clones current floor/position
       Clone clone = {Direction::Left, 0, 6};
 
-      // get closest
-      Node* startNode = nullptr;
-      int min_dist = INT_MAX;
-      for (auto& n: nodes[clone.floor]) {
-         int dist_to_elevator = n.pos - clone.pos;
+      // timer for the function
+      auto start = high_resolution_clock::now();
+      int d = traverseGraph(clone, exitNode, 0);
+      auto stop = high_resolution_clock::now();
+      auto duration = duration_cast<microseconds>(stop - start);
+      std::cout << "Traverse Duration: " << duration.count() << std::endl;
 
-         if (clone.dir == Direction::Left) {
-            if (dist_to_elevator < 0) {
-               dist_to_elevator -= 1;
-            }
-         }
-         else if (clone.dir == Direction::Right) {
-            if (dist_to_elevator > 0) {
-               dist_to_elevator += 1;
-            }
-         }
-
-         dist_to_elevator = abs(dist_to_elevator);
-         if (dist_to_elevator < min_dist) {
-            min_dist = dist_to_elevator;
-            startNode = &n;
-         }
-      }
-      int d = traverseGraph(startNode, exitNode, 0, Direction::Left);
       return d;
    }
 }
