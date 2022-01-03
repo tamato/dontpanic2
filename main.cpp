@@ -1,5 +1,6 @@
 #include <iostream>
 #include <map>
+#include <deque>
 #include <vector>
 #include <climits>
 
@@ -38,48 +39,52 @@ stage "Best Path" is the first with multiple elevators on 1 floor
 
 int main(int argc, char** argv)
 {
-   // auto start = high_resolution_clock::now();
+   int nb_floors; // number of floors
+   int width; // width of the area
+   int nb_rounds; // maximum number of rounds
+   int exit_floor; // floor on which the exit is found
+   int exit_pos; // position of the exit on its floor
+   int nb_total_clones; // number of generated clones
+   int nb_additional_elevators; // number of additional elevators that you can build
+   int nb_elevators; // number of elevators
 
-    int nb_floors; // number of floors
-    int width; // width of the area
-    int nb_rounds; // maximum number of rounds
-    int exit_floor; // floor on which the exit is found
-    int exit_pos; // position of the exit on its floor
-    int nb_total_clones; // number of generated clones
-    int nb_additional_elevators; // number of additional elevators that you can build
-    int nb_elevators; // number of elevators
+   std::ifstream level;
+   // level.open("2missing.txt");
+   level.open("bestpath.txt");
+   // level.open("elevator.txt");
+   if (!level.is_open())
+      throw std::runtime_error("File not found");
 
-    std::ifstream level;
-    // level.open("2missing.txt");
-    // level.open("bestpath.txt");
-    level.open("elevator.txt");
-    if (!level.is_open())
-       throw std::runtime_error("File not found");
+   level >> nb_floors
+      >> width >> nb_rounds
+      >> exit_floor >> exit_pos
+      >> nb_total_clones
+      >> nb_additional_elevators
+      >> nb_elevators;
 
-    level >> nb_floors
-        >> width >> nb_rounds
-        >> exit_floor >> exit_pos
-        >> nb_total_clones
-        >> nb_additional_elevators
-        >> nb_elevators;
+   std::map<int, std::vector<Node>> elevators;
+   for (int i = 0; i < nb_elevators; i++) {
+      int elevator_floor; // floor on which this elevator is found
+      int elevator_pos; // position of the elevator on its floor
+      level >> elevator_floor >> elevator_pos;
+      // std::cerr << "e floor: " << elevator_floor << ", e pos: " << elevator_pos << std::endl;
 
-    std::map<int, std::vector<Node>> elevators;
-    for (int i = 0; i < nb_elevators; i++) {
-        int elevator_floor; // floor on which this elevator is found
-        int elevator_pos; // position of the elevator on its floor
-        level >> elevator_floor >> elevator_pos;
-        // std::cerr << "e floor: " << elevator_floor << ", e pos: " << elevator_pos << std::endl;
+      Node node;
+      node.pos = elevator_pos;
+      node.floor = elevator_floor + 1;
 
-        elevators[elevator_floor].push_back(elevator_pos);
-    }
-    elevators[exit_floor].push_back(exit_pos);
+      elevators[elevator_floor].push_back(node);
+   }
+
+   Node node;
+   node.pos = exit_pos;
+   node.floor = exit_floor + 1;
+   elevators[exit_floor].push_back(node);
+   std::cout << "EndID " << node.id << std::endl;
 
    // TODO from a starting floor/pos get a path
-   auto cmd = runGraph(nb_floors, exit_floor, exit_pos, elevators);
+   runGraph(nb_floors, elevators);
 
-   // auto stop = high_resolution_clock::now();
-   // auto duration = duration_cast<microseconds>(stop - start);
-   // std::cout << "Total Duration: " << duration.count() << " in milliseconds." << std::endl;
-   std::cout << "Next cmd: " << cmd << std::endl;
+   std::cout << "Number of rounds: " << nb_rounds << std::endl;
    return 0;
 }
