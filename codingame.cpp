@@ -67,16 +67,16 @@ const std::map<unsigned int, Record> generateTable(const Node& startNode, std::m
    while ( !frontier.empty() ){
       auto& node = frontier.front();
       frontier.pop_front();
-      // std::cerr << "Popping node: " << node.id << std::endl;
+      // std::cout << "Popping node: " << node.id << std::endl;
 
       const auto& flr = node.floor; // floor is the *next* floor
-      // std::cerr << "Visiting nodes on floor " << node.floor << std::endl;
+      // std::cout << "Visiting nodes on floor " << node.floor << std::endl;
 
       // queue in frontier nodes
       if (elevators.find(flr) != elevators.end()) {
          for (auto& elevator : elevators[flr]) {
             frontier.push_back(elevator);
-            // std::cerr << "Pushing node: " << elevator.id << std::endl;
+            // std::cout << "Pushing node: " << elevator.id << std::endl;
 
             // update table
             if (table.find(elevator.id) == table.end()) {
@@ -113,7 +113,7 @@ const std::map<unsigned int, Record> generateTable(const Node& startNode, std::m
                // make an elevator?
                if (elevator.createElevator) {
                   table[elevator.id].cmd = "ELEVATOR";
-                  // std::cerr << "Creating an elevator at : " << elevator.pos << ", " << elevator.floor - 1 << std::endl;
+                  // std::cout << "Creating an elevator at : " << elevator.pos << ", " << elevator.floor - 1 << std::endl;
                }
             }
 
@@ -172,61 +172,97 @@ const std::map<unsigned int, Record> runGraph(int nb_floors, std::map<int, std::
    return table;
 }
 
-/**
-Compile commands:
-g++ -O0 -g2 -o dontPanic main.cpp && ./dontPanic
-
-stage "Best Path" is the first with multiple elevators on 1 floor
-  */
-
-int main(int argc, char** argv)
+int main()
 {
-   int nb_floors; // number of floors
-   int width; // width of the area
-   int nb_rounds; // maximum number of rounds
-   int exit_floor; // floor on which the exit is found
-   int exit_pos; // position of the exit on its floor
-   int nb_total_clones; // number of generated clones
-   int nb_additional_elevators; // number of additional elevators that you can build
-   int nb_elevators; // number of elevators
+    int nb_floors; // number of floors
+    int width; // width of the area
+    int nb_rounds; // maximum number of rounds
+    int exit_floor; // floor on which the exit is found
+    int exit_pos; // position of the exit on its floor
+    int nb_total_clones; // number of generated clones
+    int nb_additional_elevators; // number of additional elevators that you can build
+    int nb_elevators; // number of elevators
+    
+    cin >> nb_floors >> width 
+        >> nb_rounds >> exit_floor 
+        >> exit_pos >> nb_total_clones 
+        >> nb_additional_elevators 
+        >> nb_elevators; 
+    cin.ignore();
 
-   std::ifstream level;
-   // level.open("2missing.txt");
-   // level.open("bestpath.txt");
-   level.open("elevator.txt");
-   if (!level.is_open())
-      throw std::runtime_error("File not found");
-
-   level >> nb_floors
-      >> width >> nb_rounds
-      >> exit_floor >> exit_pos
-      >> nb_total_clones
-      >> nb_additional_elevators
-      >> nb_elevators;
+    cerr << " floors: " << nb_floors 
+        << " width: " << width 
+        << " rounds: " << nb_rounds
+        << " exit flr: " << exit_floor 
+        << " exit pos: " << exit_pos 
+        << " # clones: " << nb_total_clones 
+        << " # extra ele: " << nb_additional_elevators 
+        << " eles: " << nb_elevators
+        << endl;
 
    std::map<int, std::vector<Node>> elevators;
    for (int i = 0; i < nb_elevators; i++) {
       int elevator_floor; // floor on which this elevator is found
       int elevator_pos; // position of the elevator on its floor
-      level >> elevator_floor >> elevator_pos;
-      // std::cerr << "e floor: " << elevator_floor << ", e pos: " << elevator_pos << std::endl;
+      cin >> elevator_floor >> elevator_pos; cin.ignore();
 
       Node node;
       node.pos = elevator_pos;
-      node.floor = elevator_floor + 1;
+      node.floor = elevator_floor + 1; // points to the next floor
 
       elevators[elevator_floor].push_back(node);
    }
-
+  
    Node node;
    node.pos = exit_pos;
    node.floor = exit_floor;
    elevators[exit_floor].push_back(node);
-   std::cerr << "EndID " << node.id << std::endl;
 
-   // TODO from a starting floor/pos get a path
-   auto mypath = runGraph(nb_floors, elevators);
+    // game loop
+    while (1) {
+        int clone_floor; // floor of the leading clone
+        int clone_pos; // position of the leading clone on its floor
+        string direction; // direction of the leading clone: LEFT or RIGHT
+        cin >> clone_floor >> clone_pos >> direction; cin.ignore();
 
-   std::cerr << "Number of rounds: " << nb_rounds << std::endl;
-   return 0;
+        Clone c { direction, clone_floor, clone_pos };
+        cerr << "Has leader: " << boolalpha << c.hasLeader() << endl;
+
+        std::string cmd = "WAIT";
+
+        // check for leader
+        if (c.hasLeader()) {
+            auto mypath = runGraph(nb_floors, elevators);
+            
+            // keep in bounds
+            if ((c.pos == (width - 1)) || (c.pos == 0)) {
+                cmd = "BLOCK";
+            }   
+
+            // Node* startNode = nullptr;
+            // int min_dist = INT_MAX;
+            // for (auto& n: nodes[c.floor]) {
+            //     int dist_to_elevator = n.pos - c.pos;
+            //
+            //     if (c.direction == Direction::Left) {
+            //         if (dist_to_elevator < 0) {
+            //         dist_to_elevator -= 1;
+            //         }
+            //     }
+            //     else if (c.direction == Direction::Right) {
+            //         if (dist_to_elevator > 0) {
+            //         dist_to_elevator += 1;
+            //         }
+            //     }
+            //
+            //     dist_to_elevator = abs(dist_to_elevator);
+            //     if (dist_to_elevator < min_dist) {
+            //         min_dist = dist_to_elevator;
+            //         startNode = &n;
+            //     }
+            // }
+        }
+
+        cout << cmd << endl; // action: WAIT or BLOCK or ELEVATOR
+    }
 }

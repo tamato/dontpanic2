@@ -95,21 +95,21 @@ namespace collections {
 
                auto cost = elevator.pos - node.pos;
                // check if we need to turn
-               bool turn = false;
-               if (cost < 0 && node.dir == Direction::Right) {
-                  turn = true;
-               } else if (cost > 0 && node.dir == Direction::Left) {
-                  turn = true;
-               }
+               // bool turn = false;
+               // if (cost < 0 && node.dir == Direction::Right) {
+               //    turn = true;
+               // } else if (cost > 0 && node.dir == Direction::Left) {
+               //    turn = true;
+               // }
 
                cost = abs(cost);
-               if (turn) {
-                  // This entry could still be something already
-                  // if there is a double block 
-                  // or if there are 2 elevators that need to be created.
-                  table[node.id].cmd = Command::BLOCK;
-                  cost += CostToTurn;
-               }
+               // if (turn) {
+               //    // This entry could still be something already
+               //    // if there is a double block
+               //    // or if there are 2 elevators that need to be created.
+               //    table[node.id].cmd = Command::BLOCK;
+               //    cost += CostToTurn;
+               // }
 
                if (cost < table[elevator.id].cost) {
                   table[elevator.id].cost = cost;
