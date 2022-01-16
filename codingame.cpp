@@ -156,6 +156,19 @@ const map<unsigned int, Record> runGraph(int clone_pos, int nb_floors, map<int, 
    return table;
 }
 
+void printTable(map<unsigned int, Record> table)
+{
+   for (auto kp : table) {
+      cerr << "ID: " << kp.first
+         << " id: " << kp.second.id
+         << " pos " << kp.second.pos
+         << " floor " << kp.second.floor
+         << " cmd <" << kp.second.cmd << ">"
+         << " fromId " << kp.second.fromId 
+         << endl;
+   }
+}
+
 int main()
 {
     int nb_floors; // number of floors
@@ -192,7 +205,7 @@ int main()
 
       Node node;
       node.pos = elevator_pos;
-      node.floor = elevator_floor + 1; // points to the next floor
+      node.floor = elevator_floor; // points to the next floor
 
       elevators[elevator_floor].push_back(node);
    }
@@ -213,31 +226,34 @@ int main()
         cin >> clone_floor >> clone_pos >> direction; cin.ignore();
 
         Clone c { direction, clone_floor, clone_pos };
-        cerr << "Has leader: " << boolalpha << c.hasLeader() << endl;
-
         std::string cmd = "WAIT";
 
         // check for leader
         if (c.hasLeader()) {
            if (findPath) {
             mypath = runGraph(clone_pos, nb_floors, elevators);
+            printTable(mypath);
             findPath = false;
            }
 
            // get command
            auto& next = mypath[c.floor];
+           cerr << "Next: " << next.pos << "," << next.floor << ", " << next.cmd << endl;           
            if (c.pos == next.pos) {
               cmd = next.cmd;
               next.cmd = "WAIT";
            }
-
+            
+            cerr << "Dir: " << c.dir << " clone: " << c.pos << "," << c.floor << endl;
            // check if we need to turn
            int dist_to_elevator = next.pos - c.pos;
            if (c.dir== "LEFT" && dist_to_elevator > 0) {
               cmd = "BLOCK";
+              cerr << "blocked left" << endl;
            }
            else if (c.dir== "RIGHT" && dist_to_elevator < 0) {
               cmd = "BLOCK";
+              cerr << "blocked right" << endl;
            }
 
            // keep in bounds

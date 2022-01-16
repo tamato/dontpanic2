@@ -57,7 +57,6 @@ const map<unsigned int, Record> generateTable(const Node& startNode, map<int, st
 {
    deque<Node> frontier;
    frontier.push_back(startNode);
-   cerr << "starting at " << startNode.id << endl;
 
    // startNode is the last one added and will have the highest value
    // Generated elevators will be prioor to startNode
@@ -70,24 +69,31 @@ const map<unsigned int, Record> generateTable(const Node& startNode, map<int, st
 
       // queue in frontier nodes
       if (elevators.find(flr) != elevators.end()) { // don't seach beyond the exit floor
-         cerr << "elevators" << endl;
          for (auto& elevator : elevators[flr]) {
             frontier.push_back(elevator);
-            cerr << "Pushing node: " 
-               << elevator.id << " " << elevator.floor << " " << elevator.pos
-               << " created? " << boolalpha << elevator.createElevator 
-               << endl;
+            // cerr << "Pushing node: "
+            //    << elevator.id << " " << elevator.floor << " " << elevator.pos
+            //    << " created? " << boolalpha << elevator.createElevator
+            //    << endl;
 
             // update table
             if (table.find(elevator.floor) == table.end()) {
-               table[elevator.id] = Record();
+               table[elevator.floor] = Record();
             }
 
             auto cost = elevator.pos - node.pos;
             cost = abs(cost);
 
+            if (elevator.floor == 0 || elevator.floor == 3) {
+               cerr << "EleFloor: " << elevator.floor << " cost: " << cost << ", " << table[elevator.floor].cost << endl;
+            }
+
             if (cost < table[elevator.floor].cost) {
                table[elevator.floor].cost = cost;
+               if (elevator.floor == 0 || elevator.floor == 3) {
+                  cerr << "2nd EleFloor: " << elevator.floor << " cost: " << cost << ", " << table[elevator.floor].cost << endl;
+                  cerr << "Node: " << node.id << endl;
+               }
 
                // update 'closest node'/'fromId'?
                table[elevator.floor].fromId = node.id;
@@ -127,12 +133,10 @@ const map<unsigned int, Record> runGraph(int clone_pos, int nb_floors, map<int, 
    // find floors with missing elevators
    for (int flr = 0; flr < (nb_floors - 1); flr++) {
       if (elevators.find(flr) == elevators.end()) {
-         cerr << "Flr: " << flr << " missing an E" << endl;
 
          // find the next floor with an elevator
          for (int next_floor = (flr+1); next_floor < nb_floors; ++next_floor) {
             if (elevators.find(next_floor) != elevators.end()) {
-               cerr << "looking for floor with an E " << next_floor << endl;
 
                // TODO - pos could be a list and we don't want to add an elevator for every single one.
                auto& ele= elevators[next_floor][0];
@@ -141,7 +145,6 @@ const map<unsigned int, Record> runGraph(int clone_pos, int nb_floors, map<int, 
                n.floor = flr;
                n.createElevator = true;
                elevators[flr].push_back(n);
-               cerr << "Added missing elevator. " << n.pos << " " << n.floor << " id:" << n.id << endl;
                break;
             }
          }
@@ -192,10 +195,11 @@ int main(int argc, char** argv)
    int nb_elevators; // number of elevators
 
    ifstream level;
-   level.open("2missing.txt");
-   // level.open("bestpath.txt");
    // level.open("elevator.txt");
    // level.open("one_elevator_per_floor.txt");
+   // level.open("2missing.txt");
+   level.open("3missing.txt");
+   // level.open("bestpath.txt");
    if (!level.is_open())
       throw runtime_error("File not found");
 
@@ -216,18 +220,20 @@ int main(int argc, char** argv)
       node.pos = elevator_pos;
       node.floor = elevator_floor;
       elevators[elevator_floor].push_back(node);
+      // cerr << node.pos << " " << node.floor << endl;
    }
 
    Node node;
    node.pos = exit_pos;
    node.floor = exit_floor;
    elevators[exit_floor].push_back(node);
-   cerr << "EndID " << node.id << endl;
 
    // TODO from a starting floor/pos get a path
    auto mypath = runGraph(0, nb_floors, elevators);
    printTable(mypath);
 
+  Clone c { "LEFT", 1, 3 };
+  std::string cmd = "WAIT";
 
   // get command
   auto& next = mypath[c.floor];
