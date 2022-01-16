@@ -1,0 +1,3 @@
+floors: 6 width: 13 rounds: 100 exit flr: 5 exit pos: 1 # clones: 10 # extra ele: 2 eles: 3
+
+

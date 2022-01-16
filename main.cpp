@@ -19,7 +19,7 @@ struct Node {
 
    bool createElevator {false};
 
-   std::string dir;
+   string dir;
 
    Node() : id(NodeID++) {}
 
@@ -34,11 +34,11 @@ struct Record {
    unsigned int id {INT_MAX};
    unsigned int pos {0};
    unsigned int floor {0};
-   std::string cmd;
+   string cmd {"WAIT"};
 };
 
 struct Clone {
-   std::string dir;
+   string dir;
    int floor {INT_MAX};
    int pos {INT_MAX};
    int goalFloor {INT_MAX};
@@ -53,70 +53,54 @@ struct Clone {
    }
 };
 
-const std::map<unsigned int, Record> generateTable(const Node& startNode, std::map<int, std::vector<Node>>& elevators)
+const map<unsigned int, Record> generateTable(const Node& startNode, map<int, std::vector<Node>>& elevators)
 {
-   std::deque<Node> frontier;
+   deque<Node> frontier;
    frontier.push_back(startNode);
+   cerr << "starting at " << startNode.id << endl;
 
-   std::map<unsigned int, Record> table;
-   table[startNode.id] = Record();
-   table[startNode.id].fromId = startNode.id;
-   table[startNode.id].id = startNode.id;
-   table[startNode.id].cost = 0;
-
+   // startNode is the last one added and will have the highest value
+   // Generated elevators will be prioor to startNode
+   map<unsigned int, Record> table;
    while ( !frontier.empty() ){
-      auto& node = frontier.front();
+      const auto& node = frontier.front();
       frontier.pop_front();
-      // std::cerr << "Popping node: " << node.id << std::endl;
 
-      const auto& flr = node.floor; // floor is the *next* floor
-      // std::cerr << "Visiting nodes on floor " << node.floor << std::endl;
+      const auto& flr = node.floor + 1; 
 
       // queue in frontier nodes
-      if (elevators.find(flr) != elevators.end()) {
+      if (elevators.find(flr) != elevators.end()) { // don't seach beyond the exit floor
+         cerr << "elevators" << endl;
          for (auto& elevator : elevators[flr]) {
             frontier.push_back(elevator);
-            // std::cerr << "Pushing node: " << elevator.id << std::endl;
+            cerr << "Pushing node: " 
+               << elevator.id << " " << elevator.floor << " " << elevator.pos
+               << " created? " << boolalpha << elevator.createElevator 
+               << endl;
 
             // update table
-            if (table.find(elevator.id) == table.end()) {
+            if (table.find(elevator.floor) == table.end()) {
                table[elevator.id] = Record();
             }
 
             auto cost = elevator.pos - node.pos;
-            // check if we need to turn
-            // bool turn = false;
-            // if (cost < 0 && node.dir == Direction::Right) {
-            //    turn = true;
-            // } else if (cost > 0 && node.dir == Direction::Left) {
-            //    turn = true;
-            // }
-
             cost = abs(cost);
-            // if (turn) {
-            //    // This entry could still be something already
-            //    // if there is a double block
-            //    // or if there are 2 elevators that need to be created.
-            //    table[node.id].cmd = Command::BLOCK;
-            //    cost += CostToTurn;
-            // }
 
-            if (cost < table[elevator.id].cost) {
-               table[elevator.id].cost = cost;
+            if (cost < table[elevator.floor].cost) {
+               table[elevator.floor].cost = cost;
 
                // update 'closest node'/'fromId'?
-               table[elevator.id].fromId = node.id;
-               table[elevator.id].id = elevator.id;
-               table[elevator.id].pos = node.pos;
-               table[elevator.id].floor = node.floor;
+               table[elevator.floor].fromId = node.id;
+               table[elevator.floor].id = elevator.id;
+               table[elevator.floor].pos = elevator.pos;
+               table[elevator.floor].floor = elevator.floor;
 
                // make an elevator?
                if (elevator.createElevator) {
-                  table[elevator.id].cmd = "ELEVATOR";
-                  // std::cerr << "Creating an elevator at : " << elevator.pos << ", " << elevator.floor - 1 << std::endl;
+                  table[elevator.floor].cmd = "ELEVATOR";
+                  // cerr << "Creating an elevator at : " << elevator.pos << ", " << elevator.floor - 1 << endl;
                }
             }
-
          }
       }
    }
@@ -124,8 +108,8 @@ const std::map<unsigned int, Record> generateTable(const Node& startNode, std::m
    return table;
 }
 
-const std::vector<Record> sortTable(std::map<unsigned int, Record>& table) {
-   std::vector<Record> sorted;
+const vector<Record> sortTable(map<unsigned int, Record>& table) {
+   vector<Record> sorted;
 
    const int count = table.size();
    const int startNodeId = count - 1;
@@ -138,39 +122,43 @@ const std::vector<Record> sortTable(std::map<unsigned int, Record>& table) {
    return sorted;
 }
 
-const std::map<unsigned int, Record> runGraph(int nb_floors, std::map<int, std::vector<Node>>& elevators) 
+const map<unsigned int, Record> runGraph(int clone_pos, int nb_floors, map<int, std::vector<Node>>& elevators) 
 {
    // find floors with missing elevators
    for (int flr = 0; flr < (nb_floors - 1); flr++) {
       if (elevators.find(flr) == elevators.end()) {
-         int next_floor = flr + 1;
-         //cerr << "Missing an elevator" << endl;
+         cerr << "Flr: " << flr << " missing an E" << endl;
 
-         // TODO - pos could be a list and we don't want to add an elevator for every single one.
-         for (auto& ele: elevators[next_floor]) {
-            Node n;
-            n.pos = ele.pos;
-            n.floor = next_floor;
-            n.createElevator = true;
-            elevators[flr].push_back(n);
-            //cerr << "Added missing elevator. " << flr << " " << n.pos << std::endl;
+         // find the next floor with an elevator
+         for (int next_floor = (flr+1); next_floor < nb_floors; ++next_floor) {
+            if (elevators.find(next_floor) != elevators.end()) {
+               cerr << "looking for floor with an E " << next_floor << endl;
+
+               // TODO - pos could be a list and we don't want to add an elevator for every single one.
+               auto& ele= elevators[next_floor][0];
+               Node n;
+               n.pos = ele.pos;
+               n.floor = flr;
+               n.createElevator = true;
+               elevators[flr].push_back(n);
+               cerr << "Added missing elevator. " << n.pos << " " << n.floor << " id:" << n.id << endl;
+               break;
+            }
          }
       }
    }
 
    // Push in the exit
    Node startNode;
-   startNode.pos = 2;
-   startNode.floor = 0;
+   startNode.pos = clone_pos;
+   startNode.floor = -1;
    startNode.dir = "RIGHT";
 
-   cerr << "about to gen" << endl;
    auto table = generateTable(startNode, elevators);
    //auto mypath = sortTable(table);
-   cerr << "sorted" << endl;
-
    return table;
 }
+
 
 /**
 Compile commands:
@@ -178,6 +166,19 @@ g++ -O0 -g2 -o dontPanic main.cpp && ./dontPanic
 
 stage "Best Path" is the first with multiple elevators on 1 floor
   */
+
+void printTable(map<unsigned int, Record> table)
+{
+   for (auto kp : table) {
+      cerr << "ID: " << kp.first
+         << " id: " << kp.second.id
+         << " pos " << kp.second.pos
+         << " floor " << kp.second.floor
+         << " cmd <" << kp.second.cmd << ">"
+         << " fromId " << kp.second.fromId 
+         << endl;
+   }
+}
 
 int main(int argc, char** argv)
 {
@@ -190,12 +191,13 @@ int main(int argc, char** argv)
    int nb_additional_elevators; // number of additional elevators that you can build
    int nb_elevators; // number of elevators
 
-   std::ifstream level;
-   // level.open("2missing.txt");
+   ifstream level;
+   level.open("2missing.txt");
    // level.open("bestpath.txt");
-   level.open("elevator.txt");
+   // level.open("elevator.txt");
+   // level.open("one_elevator_per_floor.txt");
    if (!level.is_open())
-      throw std::runtime_error("File not found");
+      throw runtime_error("File not found");
 
    level >> nb_floors
       >> width >> nb_rounds
@@ -204,17 +206,15 @@ int main(int argc, char** argv)
       >> nb_additional_elevators
       >> nb_elevators;
 
-   std::map<int, std::vector<Node>> elevators;
+   map<int, vector<Node>> elevators;
    for (int i = 0; i < nb_elevators; i++) {
       int elevator_floor; // floor on which this elevator is found
       int elevator_pos; // position of the elevator on its floor
       level >> elevator_floor >> elevator_pos;
-      // std::cerr << "e floor: " << elevator_floor << ", e pos: " << elevator_pos << std::endl;
 
       Node node;
       node.pos = elevator_pos;
-      node.floor = elevator_floor + 1;
-
+      node.floor = elevator_floor;
       elevators[elevator_floor].push_back(node);
    }
 
@@ -222,11 +222,31 @@ int main(int argc, char** argv)
    node.pos = exit_pos;
    node.floor = exit_floor;
    elevators[exit_floor].push_back(node);
-   std::cerr << "EndID " << node.id << std::endl;
+   cerr << "EndID " << node.id << endl;
 
    // TODO from a starting floor/pos get a path
-   auto mypath = runGraph(nb_floors, elevators);
+   auto mypath = runGraph(0, nb_floors, elevators);
+   printTable(mypath);
 
-   std::cerr << "Number of rounds: " << nb_rounds << std::endl;
+
+  // get command
+  auto& next = mypath[c.floor];
+  if (c.pos == next.pos) {
+     cmd = next.cmd;
+     next.cmd = "WAIT";
+     cerr << "Next: " << next.pos << "," << next.floor << ", " << next.cmd << endl;
+  }
+   
+   cerr << "Dir: " << c.dir << " clone: " << c.pos << "," << c.floor << " next: " << next.pos << ","<< next.floor << endl;
+  // check if we need to turn
+  int dist_to_elevator = next.pos - c.pos;
+  if (c.dir== "LEFT" && dist_to_elevator > 0) {
+     cmd = "BLOCK";
+     cerr << "blocked left" << endl;
+  }
+  else if (c.dir== "RIGHT" && dist_to_elevator < 0) {
+     cmd = "BLOCK";
+     cerr << "blocked right" << endl;
+  }
    return 0;
 }

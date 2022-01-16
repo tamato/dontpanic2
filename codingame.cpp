@@ -19,7 +19,7 @@ struct Node {
 
    bool createElevator {false};
 
-   std::string dir;
+   string dir;
 
    Node() : id(NodeID++) {}
 
@@ -34,11 +34,11 @@ struct Record {
    unsigned int id {INT_MAX};
    unsigned int pos {0};
    unsigned int floor {0};
-   std::string cmd;
+   string cmd {"WAIT"};
 };
 
 struct Clone {
-   std::string dir;
+   string dir;
    int floor {INT_MAX};
    int pos {INT_MAX};
    int goalFloor {INT_MAX};
@@ -53,70 +53,54 @@ struct Clone {
    }
 };
 
-const std::map<unsigned int, Record> generateTable(const Node& startNode, std::map<int, std::vector<Node>>& elevators)
+const map<unsigned int, Record> generateTable(const Node& startNode, map<int, std::vector<Node>>& elevators)
 {
-   std::deque<Node> frontier;
+   deque<Node> frontier;
    frontier.push_back(startNode);
+   cerr << "starting at " << startNode.id << endl;
 
-   std::map<unsigned int, Record> table;
-   table[startNode.id] = Record();
-   table[startNode.id].fromId = startNode.id;
-   table[startNode.id].id = startNode.id;
-   table[startNode.id].cost = 0;
-
+   // startNode is the last one added and will have the highest value
+   // Generated elevators will be prioor to startNode
+   map<unsigned int, Record> table;
    while ( !frontier.empty() ){
-      auto& node = frontier.front();
+      const auto& node = frontier.front();
       frontier.pop_front();
-      // std::cout << "Popping node: " << node.id << std::endl;
 
-      const auto& flr = node.floor; // floor is the *next* floor
-      // std::cout << "Visiting nodes on floor " << node.floor << std::endl;
+      const auto& flr = node.floor + 1; 
 
       // queue in frontier nodes
-      if (elevators.find(flr) != elevators.end()) {
+      if (elevators.find(flr) != elevators.end()) { // don't seach beyond the exit floor
+         cerr << "elevators" << endl;
          for (auto& elevator : elevators[flr]) {
             frontier.push_back(elevator);
-            // std::cout << "Pushing node: " << elevator.id << std::endl;
+            cerr << "Pushing node: " 
+               << elevator.id << " " << elevator.floor << " " << elevator.pos
+               << " created? " << boolalpha << elevator.createElevator 
+               << endl;
 
             // update table
-            if (table.find(elevator.id) == table.end()) {
+            if (table.find(elevator.floor) == table.end()) {
                table[elevator.id] = Record();
             }
 
             auto cost = elevator.pos - node.pos;
-            // check if we need to turn
-            // bool turn = false;
-            // if (cost < 0 && node.dir == Direction::Right) {
-            //    turn = true;
-            // } else if (cost > 0 && node.dir == Direction::Left) {
-            //    turn = true;
-            // }
-
             cost = abs(cost);
-            // if (turn) {
-            //    // This entry could still be something already
-            //    // if there is a double block
-            //    // or if there are 2 elevators that need to be created.
-            //    table[node.id].cmd = Command::BLOCK;
-            //    cost += CostToTurn;
-            // }
 
-            if (cost < table[elevator.id].cost) {
-               table[elevator.id].cost = cost;
+            if (cost < table[elevator.floor].cost) {
+               table[elevator.floor].cost = cost;
 
                // update 'closest node'/'fromId'?
-               table[elevator.id].fromId = node.id;
-               table[elevator.id].id = elevator.id;
-               table[elevator.id].pos = node.pos;
-               table[elevator.id].floor = node.floor;
+               table[elevator.floor].fromId = node.id;
+               table[elevator.floor].id = elevator.id;
+               table[elevator.floor].pos = elevator.pos;
+               table[elevator.floor].floor = elevator.floor;
 
                // make an elevator?
                if (elevator.createElevator) {
-                  table[elevator.id].cmd = "ELEVATOR";
-                  // std::cout << "Creating an elevator at : " << elevator.pos << ", " << elevator.floor - 1 << std::endl;
+                  table[elevator.floor].cmd = "ELEVATOR";
+                  // cerr << "Creating an elevator at : " << elevator.pos << ", " << elevator.floor - 1 << endl;
                }
             }
-
          }
       }
    }
@@ -124,8 +108,8 @@ const std::map<unsigned int, Record> generateTable(const Node& startNode, std::m
    return table;
 }
 
-const std::vector<Record> sortTable(std::map<unsigned int, Record>& table) {
-   std::vector<Record> sorted;
+const vector<Record> sortTable(map<unsigned int, Record>& table) {
+   vector<Record> sorted;
 
    const int count = table.size();
    const int startNodeId = count - 1;
@@ -138,37 +122,37 @@ const std::vector<Record> sortTable(std::map<unsigned int, Record>& table) {
    return sorted;
 }
 
-const std::map<unsigned int, Record> runGraph(int nb_floors, std::map<int, std::vector<Node>>& elevators) 
+const map<unsigned int, Record> runGraph(int clone_pos, int nb_floors, map<int, std::vector<Node>>& elevators) 
 {
    // find floors with missing elevators
    for (int flr = 0; flr < (nb_floors - 1); flr++) {
       if (elevators.find(flr) == elevators.end()) {
-         int next_floor = flr + 1;
-         //cerr << "Missing an elevator" << endl;
 
-         // TODO - pos could be a list and we don't want to add an elevator for every single one.
-         for (auto& ele: elevators[next_floor]) {
-            Node n;
-            n.pos = ele.pos;
-            n.floor = next_floor;
-            n.createElevator = true;
-            elevators[flr].push_back(n);
-            //cerr << "Added missing elevator. " << flr << " " << n.pos << std::endl;
+         // find the next floor with an elevator
+         for (int next_floor = (flr+1); next_floor < nb_floors; ++next_floor) {
+            if (elevators.find(next_floor) != elevators.end()) {
+
+               // TODO - pos could be a list and we don't want to add an elevator for every single one.
+               auto& ele= elevators[next_floor][0];
+               Node n;
+               n.pos = ele.pos;
+               n.floor = flr;
+               n.createElevator = true;
+               elevators[flr].push_back(n);
+               break;
+            }
          }
       }
    }
 
    // Push in the exit
    Node startNode;
-   startNode.pos = 2;
-   startNode.floor = 0;
+   startNode.pos = clone_pos;
+   startNode.floor = -1;
    startNode.dir = "RIGHT";
 
-   cerr << "about to gen" << endl;
    auto table = generateTable(startNode, elevators);
    //auto mypath = sortTable(table);
-   cerr << "sorted" << endl;
-
    return table;
 }
 
@@ -213,10 +197,13 @@ int main()
       elevators[elevator_floor].push_back(node);
    }
   
-   Node node;
-   node.pos = exit_pos;
-   node.floor = exit_floor;
-   elevators[exit_floor].push_back(node);
+   Node exitNode;
+   exitNode.pos = exit_pos;
+   exitNode.floor = exit_floor;
+   elevators[exit_floor].push_back(exitNode);
+
+   bool findPath = true;
+   std::map<unsigned int, Record> mypath;
 
     // game loop
     while (1) {
@@ -232,37 +219,32 @@ int main()
 
         // check for leader
         if (c.hasLeader()) {
-            auto mypath = runGraph(nb_floors, elevators);
-            
-            // keep in bounds
-            if ((c.pos == (width - 1)) || (c.pos == 0)) {
-                cmd = "BLOCK";
-            }   
+           if (findPath) {
+            mypath = runGraph(clone_pos, nb_floors, elevators);
+            findPath = false;
+           }
 
-            // Node* startNode = nullptr;
-            // int min_dist = INT_MAX;
-            // for (auto& n: nodes[c.floor]) {
-            //     int dist_to_elevator = n.pos - c.pos;
-            //
-            //     if (c.direction == Direction::Left) {
-            //         if (dist_to_elevator < 0) {
-            //         dist_to_elevator -= 1;
-            //         }
-            //     }
-            //     else if (c.direction == Direction::Right) {
-            //         if (dist_to_elevator > 0) {
-            //         dist_to_elevator += 1;
-            //         }
-            //     }
-            //
-            //     dist_to_elevator = abs(dist_to_elevator);
-            //     if (dist_to_elevator < min_dist) {
-            //         min_dist = dist_to_elevator;
-            //         startNode = &n;
-            //     }
-            // }
+           // get command
+           auto& next = mypath[c.floor];
+           if (c.pos == next.pos) {
+              cmd = next.cmd;
+              next.cmd = "WAIT";
+           }
+
+           // check if we need to turn
+           int dist_to_elevator = next.pos - c.pos;
+           if (c.dir== "LEFT" && dist_to_elevator > 0) {
+              cmd = "BLOCK";
+           }
+           else if (c.dir== "RIGHT" && dist_to_elevator < 0) {
+              cmd = "BLOCK";
+           }
+
+           // keep in bounds
+           if ((c.pos == (width - 1)) || (c.pos == 0)) {
+               cmd = "BLOCK";
+           }   
         }
-
         cout << cmd << endl; // action: WAIT or BLOCK or ELEVATOR
     }
 }
