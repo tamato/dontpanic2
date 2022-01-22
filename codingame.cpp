@@ -57,7 +57,6 @@ const map<unsigned int, Record> generateTable(const Node& startNode, map<int, st
 {
    deque<Node> frontier;
    frontier.push_back(startNode);
-   cerr << "starting at " << startNode.id << endl;
 
    // startNode is the last one added and will have the highest value
    // Generated elevators will be prioor to startNode
@@ -67,25 +66,30 @@ const map<unsigned int, Record> generateTable(const Node& startNode, map<int, st
       frontier.pop_front();
 
       const auto& flr = node.floor + 1; 
+      const auto& dir = node.dir;
 
       // queue in frontier nodes
       if (elevators.find(flr) != elevators.end()) { // don't seach beyond the exit floor
-         cerr << "elevators" << endl;
          for (auto& elevator : elevators[flr]) {
-            frontier.push_back(elevator);
-            cerr << "Pushing node: " 
-               << elevator.id << " " << elevator.floor << " " << elevator.pos
-               << " created? " << boolalpha << elevator.createElevator 
-               << endl;
+            elevator.dir = dir;
 
             // update table
             if (table.find(elevator.floor) == table.end()) {
-               table[elevator.id] = Record();
+               table[elevator.floor] = Record();
             }
 
             auto cost = elevator.pos - node.pos;
-            cost = abs(cost);
+            if (node.dir == "LEFT" && cost > 0) {
+               cost += 1;
+               elevator.dir = "RIGHT";
+            }
+            else if (node.dir == "RIGHT" && cost < 0) {
+               cost -= 1;
+               elevator.dir = "LEFT";
+            }
+            frontier.push_back(elevator);
 
+            cost = abs(cost);
             if (cost < table[elevator.floor].cost) {
                table[elevator.floor].cost = cost;
 
@@ -98,7 +102,6 @@ const map<unsigned int, Record> generateTable(const Node& startNode, map<int, st
                // make an elevator?
                if (elevator.createElevator) {
                   table[elevator.floor].cmd = "ELEVATOR";
-                  // cerr << "Creating an elevator at : " << elevator.pos << ", " << elevator.floor - 1 << endl;
                }
             }
          }
@@ -206,6 +209,7 @@ int main()
       Node node;
       node.pos = elevator_pos;
       node.floor = elevator_floor; // points to the next floor
+      cerr << node.floor << " " << node.pos << endl;
 
       elevators[elevator_floor].push_back(node);
    }

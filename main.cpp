@@ -66,15 +66,12 @@ const map<unsigned int, Record> generateTable(const Node& startNode, map<int, st
       frontier.pop_front();
 
       const auto& flr = node.floor + 1; 
+      const auto& dir = node.dir;
 
       // queue in frontier nodes
       if (elevators.find(flr) != elevators.end()) { // don't seach beyond the exit floor
          for (auto& elevator : elevators[flr]) {
-            frontier.push_back(elevator);
-            // cerr << "Pushing node: "
-            //    << elevator.id << " " << elevator.floor << " " << elevator.pos
-            //    << " created? " << boolalpha << elevator.createElevator
-            //    << endl;
+            elevator.dir = dir;
 
             // update table
             if (table.find(elevator.floor) == table.end()) {
@@ -82,18 +79,19 @@ const map<unsigned int, Record> generateTable(const Node& startNode, map<int, st
             }
 
             auto cost = elevator.pos - node.pos;
-            cost = abs(cost);
-
-            if (elevator.floor == 0 || elevator.floor == 3) {
-               cerr << "EleFloor: " << elevator.floor << " cost: " << cost << ", " << table[elevator.floor].cost << endl;
+            if (node.dir == "LEFT" && cost > 0) {
+               cost += 1;
+               elevator.dir = "RIGHT";
             }
+            else if (node.dir == "RIGHT" && cost < 0) {
+               cost -= 1;
+               elevator.dir = "LEFT";
+            }
+            frontier.push_back(elevator);
 
+            cost = abs(cost);
             if (cost < table[elevator.floor].cost) {
                table[elevator.floor].cost = cost;
-               if (elevator.floor == 0 || elevator.floor == 3) {
-                  cerr << "2nd EleFloor: " << elevator.floor << " cost: " << cost << ", " << table[elevator.floor].cost << endl;
-                  cerr << "Node: " << node.id << endl;
-               }
 
                // update 'closest node'/'fromId'?
                table[elevator.floor].fromId = node.id;
@@ -104,7 +102,6 @@ const map<unsigned int, Record> generateTable(const Node& startNode, map<int, st
                // make an elevator?
                if (elevator.createElevator) {
                   table[elevator.floor].cmd = "ELEVATOR";
-                  // cerr << "Creating an elevator at : " << elevator.pos << ", " << elevator.floor - 1 << endl;
                }
             }
          }
