@@ -136,7 +136,7 @@ const map<unsigned int, Record> runGraph(int clone_pos, int nb_floors, map<int, 
             if (elevators.find(next_floor) != elevators.end()) {
 
                // TODO - pos could be a list and we don't want to add an elevator for every single one.
-               auto& ele= elevators[next_floor][0];
+               auto& ele = elevators[next_floor][0];
                Node n;
                n.pos = ele.pos;
                n.floor = flr;
@@ -195,8 +195,9 @@ int main(int argc, char** argv)
    // level.open("elevator.txt");
    // level.open("one_elevator_per_floor.txt");
    // level.open("2missing.txt");
-   level.open("3missing.txt");
+   // level.open("3missing.txt");
    // level.open("bestpath.txt");
+   level.open("bestpath_missing_elevators.txt");
    if (!level.is_open())
       throw runtime_error("File not found");
 
@@ -240,7 +241,6 @@ int main(int argc, char** argv)
      cerr << "Next: " << next.pos << "," << next.floor << ", " << next.cmd << endl;
   }
    
-   cerr << "Dir: " << c.dir << " clone: " << c.pos << "," << c.floor << " next: " << next.pos << ","<< next.floor << endl;
   // check if we need to turn
   int dist_to_elevator = next.pos - c.pos;
   if (c.dir== "LEFT" && dist_to_elevator > 0) {
