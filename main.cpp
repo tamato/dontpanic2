@@ -32,7 +32,7 @@ struct Record {
    unsigned int cost {INT_MAX};
    unsigned int fromId {INT_MAX};
    unsigned int id {INT_MAX};
-   unsigned int pos {0};
+   int pos {0};
    unsigned int floor {0};
    string cmd {"WAIT"};
 };
@@ -130,18 +130,23 @@ const map<unsigned int, Record> runGraph(int clone_pos, int nb_floors, map<int, 
    // find floors with missing elevators
    for (int flr = 0; flr < (nb_floors - 1); flr++) {
       if (elevators.find(flr) == elevators.end()) {
+         cerr << "Missing an elevator on flr: " << flr << endl;
 
+         // Currently on a floor missing an elevator
          // find the next floor with an elevator
          for (int next_floor = (flr+1); next_floor < nb_floors; ++next_floor) {
             if (elevators.find(next_floor) != elevators.end()) {
 
-               // TODO - pos could be a list and we don't want to add an elevator for every single one.
-               auto& ele = elevators[next_floor][0];
-               Node n;
-               n.pos = ele.pos;
-               n.floor = flr;
-               n.createElevator = true;
-               elevators[flr].push_back(n);
+               // We might have traveled up several flights to find a floor with and elevator
+               // In order to find the 'bestpath' add an elevator under each one
+               // TODO - check that the bestpath does not have more created elevators than 'additional elevators'
+               for (auto& ele : elevators[next_floor]) {
+                  Node n;
+                  n.pos = ele.pos;
+                  n.floor = flr;
+                  n.createElevator = true;
+                  elevators[flr].push_back(n);
+               }
                break;
             }
          }
@@ -159,6 +164,45 @@ const map<unsigned int, Record> runGraph(int clone_pos, int nb_floors, map<int, 
    return table;
 }
 
+void optimizePath(map<unsigned int, Record>& table, int nb_additional_elevators, const map<int, vector<Node>>& elevators)
+{
+   if (nb_additional_elevators == 0) return;
+
+   // find longest path distance
+   const int first_floor = 0;
+   int prevPos = table[first_floor].pos;
+   int maxDist = 0;
+   unsigned int worst = INT_MAX;
+   for (auto kp : table) {
+      const auto record = kp.second;
+
+      const int dist = abs(record.pos - prevPos);
+      if (dist > maxDist) {
+         // floor with the longest path
+         worst = kp.first;
+         maxDist = dist;
+
+         cerr << "Worst floor is: " << worst << " dist: " << maxDist << endl;
+      }
+
+      prevPos = record.pos;
+   }
+
+   // put elevator directly above the one we came from
+   unsigned int newElePos = table[worst - 1].pos;
+   table[worst].pos = newElePos;
+   table[worst].cmd = "ELEVATOR";
+
+   // redo the path from the new elevator
+   int minDist = INT_MAX;
+   int 
+   for (auto& ele : elevators[worst + 1]) {
+      const int dist = abs(ele.pos - newElePos);
+      if (dist < minDist) {
+         minDist = dist;
+      }
+   }
+}
 
 /**
 Compile commands:
@@ -228,6 +272,7 @@ int main(int argc, char** argv)
 
    // TODO from a starting floor/pos get a path
    auto mypath = runGraph(0, nb_floors, elevators);
+   optimizePath(mypath, nb_additional_elevators, elevators);
    printTable(mypath);
 
   Clone c { "LEFT", 1, 3 };
