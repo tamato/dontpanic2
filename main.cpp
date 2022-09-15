@@ -65,7 +65,7 @@ const map<unsigned int, Record> generateTable(const Node& startNode, map<int, st
       const auto& node = frontier.front();
       frontier.pop_front();
 
-      const auto& flr = node.floor + 1; 
+      const auto& flr = node.floor + 1;
       const auto& dir = node.dir;
 
       // queue in frontier nodes
@@ -125,7 +125,7 @@ const vector<Record> sortTable(map<unsigned int, Record>& table) {
    return sorted;
 }
 
-const map<unsigned int, Record> runGraph(int clone_pos, int nb_floors, map<int, std::vector<Node>>& elevators) 
+const map<unsigned int, Record> runGraph(int clone_pos, int nb_floors, map<int, std::vector<Node>>& elevators)
 {
    // find floors with missing elevators
    for (int flr = 0; flr < (nb_floors - 1); flr++) {
@@ -189,14 +189,13 @@ void optimizePath(map<unsigned int, Record>& table, int nb_additional_elevators,
    }
 
    // put elevator directly above the one we came from
-   unsigned int newElePos = table[worst - 1].pos;
+   int newElePos = table[worst - 1].pos;
    table[worst].pos = newElePos;
    table[worst].cmd = "ELEVATOR";
 
    // redo the path from the new elevator
    int minDist = INT_MAX;
-   int 
-   for (auto& ele : elevators[worst + 1]) {
+   for (auto& ele : elevators.at(worst + 1)) {
       const int dist = abs(ele.pos - newElePos);
       if (dist < minDist) {
          minDist = dist;
@@ -219,7 +218,7 @@ void printTable(map<unsigned int, Record> table)
          << " pos " << kp.second.pos
          << " floor " << kp.second.floor
          << " cmd <" << kp.second.cmd << ">"
-         << " fromId " << kp.second.fromId 
+         << " fromId " << kp.second.fromId
          << endl;
    }
 }
@@ -285,7 +284,7 @@ int main(int argc, char** argv)
      next.cmd = "WAIT";
      cerr << "Next: " << next.pos << "," << next.floor << ", " << next.cmd << endl;
   }
-   
+
   // check if we need to turn
   int dist_to_elevator = next.pos - c.pos;
   if (c.dir== "LEFT" && dist_to_elevator > 0) {
